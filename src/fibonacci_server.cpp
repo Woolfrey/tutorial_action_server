@@ -106,31 +106,30 @@ class FibonacciActionServer : public rclcpp::Node
                RCLCPP_INFO(this->get_logger(), message.c_str());                                    // Convert std::string to char*
                
                rclcpp::Rate loopRate(1);                                                            // Set a loop rate of 1Hz
+
+               auto feedback = std::make_shared<Fibonacci::Feedback>();                             // ROS2 requires shared pointers
+ 
+               feedback->partial_sequence.push_back(0);                                             // First number in Fibonacci sequence
+               feedback->partial_sequence.push_back(1);                                             // Second number in Fibonacci sequence
                
-               auto feedback = std::make_shared<Fibonacci::Feedback>();                             // Creates a shared pointer
+               auto result = std::make_shared<Fibonacci::Result>();                                 // ROS2 requires shared pointers
                
-               auto &sequence = feedback->partial_sequence;                                         // Pointer to the underlying int array
-               
-               sequence.push_back(0); sequence.push_back(1);                                        // Insert first 2 elements
-               
-               auto result = std::make_shared<Fibonacci::Result>();                                 // Creates shared pointer
-               
-               // This is the main loop
                for(int i = 1; (i < numElements) && rclcpp::ok(); ++i)
                {
                     // Check for cancellation
                     if(actionManager->is_canceling())
                     {
-                         result->sequence = sequence;                                               // Put the current sequence in to the result
+                         result->sequence = feedback->partial_sequence;                             // Put partial sequence in result
                          
-                         actionManager->canceled(result);                                           // Pass on the final result
+                         actionManager->canceled(result);                                           // Cancel with result
                          
                          RCLCPP_INFO(this->get_logger(), "Computation of Fibonacci sequence cancelled at element %d", i);
                     }
                     
-                    sequence.push_back(sequence[i] + sequence[i-1]);                                // Compute next element in Fibonacci sequence
+                    feedback->partial_sequence.push_back(feedback->partial_sequence[i] +
+                                                         feedback->partial_sequence[i-1]);          // Compute next Fibonacci number
                     
-                    actionManager->publish_feedback(feedback);
+                    actionManager->publish_feedback(feedback);                                      // As it says
                     
                     RCLCPP_INFO(this->get_logger(), "Publishing Fibonacci sequence up to element %d", i);
                     
@@ -140,8 +139,8 @@ class FibonacciActionServer : public rclcpp::Node
                // Check that objective is complete
                if(rclcpp::ok())
                {
-                    result->sequence = sequence;                                                    // Put current sequence in the result
-                    
+                    result->sequence = feedback->partial_sequence;                              
+
                     actionManager->succeed(result);                                                 // Add result
                     
                     RCLCPP_INFO(this->get_logger(), "Finished computing Fibonacci sequence prematurely.");
