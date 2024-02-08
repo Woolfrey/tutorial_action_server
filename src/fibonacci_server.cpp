@@ -1,9 +1,3 @@
-//#include <functional>
-//#include <future>
-//#include <memory>
-//#include <string>
-//#include <sstream>
-
 #include "tutorial_action_definition/action/fibonacci.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
@@ -95,6 +89,7 @@ class FibonacciActionServer : public rclcpp::Node
           
           /**
            * This is the main control thread.
+           * @param actionManager 
            */
           void execute(const std::shared_ptr<GoalHandle> actionManager)
           {
@@ -148,7 +143,6 @@ class FibonacciActionServer : public rclcpp::Node
           }
 };                                                                                                  // Semicolon required after class definition
 
-
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                           MAIN                                                //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -158,7 +152,7 @@ int main(int argc, char **argv)
      
      auto actionServerNode = std::make_shared<FibonacciActionServer>();                             // Create node (as shared pointer)
 
-     rclcpp::spin(actionServerNode);
+     rclcpp::spin(actionServerNode);                                                                // Runs the node indefinitely
 
      rclcpp::shutdown();
      
