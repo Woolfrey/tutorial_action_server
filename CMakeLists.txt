@@ -32,6 +32,13 @@ ament_target_dependencies(fibonacci_server
                           "rclcpp_components"
                           "tutorial_action_definition")
                           
+add_executable(fibonacci_client src/fibonacci_client.cpp)
+ament_target_dependencies(fibonacci_client
+                          "rclcpp"
+                          "rclcpp_action"
+                          "rclcpp_components"
+                          "tutorial_action_definition")
+                          
 install(TARGETS
         fibonacci_server
         DESTINATION lib/${PROJECT_NAME})
