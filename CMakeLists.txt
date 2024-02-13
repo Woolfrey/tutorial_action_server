@@ -41,6 +41,7 @@ ament_target_dependencies(fibonacci_client
                           
 install(TARGETS
         fibonacci_server
+        fibonacci_client
         DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

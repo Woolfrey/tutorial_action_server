@@ -1,168 +1,74 @@
-#include <iostream>
-#include <thread>
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
+#include <tutorial_action_definition/action/fibonacci.hpp>
 
-#include "tutorial_action_definition/action/fibonacci.hpp"                                          // Previously compiled package
-#include "rclcpp/rclcpp.hpp"                                                                        // 
-#include "rclcpp_action/rclcpp_action.hpp"
-#include "rclcpp_components/register_node_macro.hpp"
+using Fibonacci = tutorial_action_definition::action::Fibonacci;                                    // Makes referencing easier
 
-class FibonacciActionClient : public rclcpp::Node
-{
-     public:
-          using Fibonacci = tutorial_action_definition::action::Fibonacci;                               // Makes referencing easier
-          
-          using GoalHandle = rclcpp_action::ClientGoalHandle<Fibonacci>;                                 // Makes referencing easier
-          
-          /**
-           * Constructor.
-           */
-          FibonacciActionClient(const rclcpp::NodeOptions &options = rclcpp::NodeOptions())
-          : Node("fibonacci_action_client", options)
-          {
-               this->_client = rclcpp_action::create_client<Fibonacci>(this, "fibonacci");               // Bind this ROS node to client server named 'fibonacci'
-               
-        
-               this->_timer = this->create_wall_timer(std::chrono::milliseconds(500),
-                                                      std::bind(&FibonacciActionClient::request_sequence,this));
-          }
-          
-          /**
-           * Request that the server computes the Fibonacci sequence up to a specified number.
-           */
-          void request_sequence()
-          {
-               using namespace std::placeholders;                                                        // For arguments _1, _2 used below
-         
-               this->_timer->cancel();                                                                   // Stops the timer
-               
-               // If server does not appear, shut down
-               if(not this->_client->wait_for_action_server())
-               {
-                    RCLCPP_ERROR(this->get_logger(), "Waited for action server but it did not appear."); //
-                    
-                    rclcpp::shutdown();                                                                  // Shut down this node
-               }
-               
-               // Get input from user
-               auto input = Fibonacci::Goal();
-               
-               std::cout << "Enter an integer:" << std::endl;
-      
-               bool OK = false;
-               while(not OK)
-               {
-                    std::cin  >> input.order;
-                    std::cout << "Is " << input.order << " correct? Y/n" << std::endl;
-                    std::string response;
-                    std::cin >> response;
-                    
-                    if(response == "Y") OK = true;
-               }
-               
-               RCLCPP_INFO(this->get_logger(), "Sending request to Fibonacci server.");
-
-               // Link callback functions
-               
-               auto sendOptions = rclcpp_action::Client<Fibonacci>::SendGoalOptions();
-               sendOptions.goal_response_callback = std::bind(&FibonacciActionClient::process_response,this,_1);
-               sendOptions.feedback_callback      = std::bind(&FibonacciActionClient::receive_feedback,this,_1,_2);
-               sendOptions.result_callback        = std::bind(&FibonacciActionClient::check_result,this,_1);
-               
-               this->_client->async_send_goal(input, sendOptions);                                  // Send
-          }
-     
-     private:
-          
-          rclcpp_action::Client<Fibonacci>::SharedPtr _client;                                      // Client class for Fibonacci action             
-          
-          rclcpp::TimerBase::SharedPtr _timer;                                                      // Stopwatch used to delay startup
-          
-          /**
-           * Check the response from the action request.
-           */
-          void process_response()
-          {
-               // lol
-          }
-           /*
-           void process_response(std::shared_future<GoalHandle::SharedPtr> future)
-           {
-               auto responseManager = future.get();
-               
-               if(not responseManager) RCLCPP_ERROR(this->get_logger(), "Request was rejected by the server.");
-               else                    RCLCPP_INFO( this->get_logger(), "Request accepted by the server. Waiting for the result.");
-           }
-           */
-           
-           /**
-            * Prints out the intermediate sequences of Fibonacci numbers
-            * @param SharedPtr I don't know what this does ┐(ﾟ ～ﾟ )┌
-            * @param feedback Updates from the server as it executes the action
-            */
-           void receive_feedback() {}
-           /*
-           void receive_feedback(GoalHandle::SharedPtr, const std::shared_ptr<const Fibonacci::Feedback> feedback)
-           {
-               std::string sequence = "Next number in the sequence is: ";
-         
-               for(auto number : feedback->partial_sequence) sequence += std::to_string(number) + " "; // Add the numbers to the string
-               
-               RCLCPP_INFO(this->get_logger(), sequence.c_str());                                   // Convert to char* and print
-           }
-           */
-           
-           /**
-            * Determines the result of the action and prints the appropriate response.
-            * @response The final message received from the action server.
-            */
-           
-           void check_result() {}
-           /*
-           void check_result(const GoalHandle::WrappedResult &result)
-           {
-               switch(result.code)
-               {
-                    case rclcpp_action::ResultCode::SUCCEEDED :
-                    {
-                         std::string response = "The result is: ";
-                         for(auto number : result.result->sequence) response += std::to_string(number) + " ";
-                         RCLCPP_INFO(this->get_logger(), response.c_str());                          // Convert to char* and print
-                         break;
-                    }
-                    case rclcpp_action::ResultCode::ABORTED :
-                    {
-                         RCLCPP_ERROR(this->get_logger(), "Action aborted");
-                         break;
-                    }
-                    case rclcpp_action::ResultCode::CANCELED :
-                    {
-                         RCLCPP_ERROR(this->get_logger(), "Action canceled");
-                         break;
-                    }
-                    default:
-                    {
-                         RCLCPP_ERROR(this->get_logger(), "Unknown result code");
-                         break;
-                    }
-               }
-               
-               rclcpp::shutdown();
-           }*/
-};                                                                                                  // Semicolon needed after class declaration
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                                           MAIN                                                //
-///////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                             MAIN                                               //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv)
 {
      rclcpp::init(argc, argv);                                                                      // Start up ROS2
-    
-     auto actionClientNode = std::make_shared<FibonacciActionClient>();                             // Create node (as shared pointer)
+     
+     auto node = rclcpp::Node::make_shared("fibonacci_action_client_node");                         // Create nodes
+     
+     auto client = rclcpp_action::create_client<Fibonacci>(node,"fibonacci");                       // Create client and attach node
+     
+     // Wait for the server to appear; if not, shut down
+     if(not client->wait_for_action_server(std::chrono::seconds(5)))
+     {
+          RCLCPP_ERROR(node->get_logger(), "Waited 5 seconds for the server and found nothing.");
+          
+          return -1;                                                                                // Shut down with error
+     }
+     
+     // Create goal message
+     auto goal = Fibonacci::Goal();
+     goal.order = 5;
+     
+     // Send goal and wait for result
+     auto sendGoalFuture = client->async_send_goal(goal);
+     
+     if(rclcpp::spin_until_future_complete(node, sendGoalFuture) != rclcpp::FutureReturnCode::SUCCESS)
+     {
+          RCLCPP_ERROR(node->get_logger(), "Failed to send goal.");
+          
+          return -1;
+     }
+     
+     auto goalHandle = sendGoalFuture.get();
+     if(not goalHandle)
+     {
+          RCLCPP_ERROR(node->get_logger(), "Goal was rejected by server.");
+          
+          return -1;
+     }
+          
 
-     rclcpp::spin(actionClientNode);                                                                // Runs the node indefinitely
-
+     // Wait for the result
+     auto resultFuture = client->async_get_result(goalHandle);
+     if(rclcpp::spin_until_future_complete(node,resultFuture) != rclcpp::FutureReturnCode::SUCCESS)
+     {
+          RCLCPP_ERROR(node->get_logger(), "Failed to get result.");
+          
+          return -1;
+     }
+     
+     auto result = resultFuture.get();
+     if(result.code == rclcpp_action::ResultCode::SUCCEEDED)
+     {
+          std::string sequence = "Result: ";
+          for(auto element : result.result->sequence) sequence += " " + std::to_string(element);
+          
+          RCLCPP_INFO(node->get_logger(), sequence.c_str());
+     }
+     else
+     {
+          RCLCPP_ERROR(node->get_logger(), "Action did not succeed.");
+     }
+     
      rclcpp::shutdown();
      
      return 0;
 }
-          
