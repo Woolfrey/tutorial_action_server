@@ -18,7 +18,7 @@ using RequestManager = rclcpp_action::ServerGoalHandle<HaikuAction>;            
  * @return REJECT if the request is < 1 line, otherwise ACCEPT_AND_EXECUTE
  */
 rclcpp_action::GoalResponse process_request(const rclcpp_action::GoalUUID            &uuid,
-                                            std::shared_ptr<const HaikuAction::Goal> &request)
+                                            std::shared_ptr<const HaikuAction::Goal> request)
 {
      (void)uuid;                                                                                    // This prevents colcon build from throwing a warning message
      
