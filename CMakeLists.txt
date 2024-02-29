@@ -25,23 +25,16 @@ endif()
 ####################################################################################################
 #                                            Executables                                           #
 ####################################################################################################
-add_executable(fibonacci_server src/fibonacci_server.cpp)
-ament_target_dependencies(fibonacci_server
+add_executable(haiku_action_server src/haiku_action_server.cpp)
+ament_target_dependencies(haiku_action_server
                           "rclcpp"
                           "rclcpp_action"
                           "rclcpp_components"
                           "tutorial_action_definition")
-                          
-add_executable(fibonacci_client src/fibonacci_client.cpp)
-ament_target_dependencies(fibonacci_client
-                          "rclcpp"
-                          "rclcpp_action"
-                          "rclcpp_components"
-                          "tutorial_action_definition")
-                          
+   
+# This is so ROS2 can find the package                                               
 install(TARGETS
-        fibonacci_server
-        fibonacci_client
+        haiku_action_server
         DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

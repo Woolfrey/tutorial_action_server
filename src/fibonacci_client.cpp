@@ -44,7 +44,6 @@ int main(int argc, char **argv)
           
           return -1;
      }
-          
 
      // Wait for the result
      auto resultFuture = client->async_get_result(goalHandle);
