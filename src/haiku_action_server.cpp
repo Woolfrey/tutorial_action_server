@@ -8,7 +8,7 @@ std::shared_ptr<rclcpp::Node> node = nullptr;                                   
 
 
 
-using HaikuAction = tutorial_action_definition::action::haiku;                                      // Makes referencing easier
+using HaikuAction = tutorial_action_definition::action::Haiku;                                      // Makes referencing easier
 using RequestManager = rclcpp_action::ServerGoalHandle<HaikuAction>;                                // For ease of use
 
 /**
@@ -17,10 +17,10 @@ using RequestManager = rclcpp_action::ServerGoalHandle<HaikuAction>;            
  * @param request The number of lines of the poem to print/return.
  * @return REJECT if the request is < 1 line, otherwise ACCEPT_AND_EXECUTE
  */
-rclcpp_action::GoalResponse process_request(const rclcpp_action::GoalUUID &uuid,
+rclcpp_action::GoalResponse process_request(const rclcpp_action::GoalUUID            &uuid,
                                             std::shared_ptr<const HaikuAction::Goal> &request)
 {
-     void(uuid);                                                                                    // This prevents colcon build from throwing a warning message
+     (void)uuid;                                                                                    // This prevents colcon build from throwing a warning message
      
      // Structure of Haiku.action:
      //
@@ -45,17 +45,46 @@ rclcpp_action::GoalResponse process_request(const rclcpp_action::GoalUUID &uuid,
  */
 rclcpp_action::CancelResponse cancel_action(const std::shared_ptr<RequestManager> manager)
 {
-     void(manager);                                                                                 // Stops colcon build throwing a warning
+     (void)manager;                                                                                 // Stops colcon build throwing a warning
      
      RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Received cancellation request.");                    // Inform user
      
      return rclcpp_action::CancelResponse::ACCEPT;
 }
 
+/**
+ * This function is called when a requested action is accepted.
+ * @param manager An object that contains information on the HaikuAction data.
+ */
 void accept_request(const std::shared_ptr<RequestManager> manager)
-{
+{   
      // using namespace std::placeholders;
      // std::thread{std::bind(&ActionServer::execute, this,_1), manager}.detach();
+     
+     (void)manager;
+      
+     rclcpp::Rate loopRate(2.0);
+     
+     int count = 1;
+     
+     while(rclcpp::ok())
+     {
+          if(count == 1)
+          {
+               std::cout << "Worker bees can leave.\n";
+               count++;
+          }
+          else if(count == 2)
+          {
+               std::cout << "Even drones can fly away.\n";
+               count++; 
+          }
+          else
+          {
+               std::cout << "The Queen is their slave.\n\n";
+               count = 1;
+          }
+     }
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,11 +96,22 @@ int main(int argc, char **argv)
      
      node = rclcpp::Node::make_shared("haiku_action_server");                                       // Assign node to empty memory
      
-     rclcpp::Service<HaikuService>::SharedPtr actionServer =
-     node->create_service<HaikuService>("haiku_action_service",
-                                        &process_request,
-                                        &cancel_action,
-                                        &accept_request);
-      
+     
+     rclcpp_action::Server<HaikuAction>::SharedPtr actionServer =
+     rclcpp_action::create_server<HaikuAction>(node->get_node_base_interface(),
+                                               node->get_node_clock_interface(),
+                                               node->get_node_logging_interface(),
+                                               node->get_node_waitables_interface(),
+                                               "haiku_action_service",
+                                               &process_request,
+                                               &cancel_action,
+                                               &accept_request);
+     
+     RCLCPP_INFO(node->get_logger(), "Ready to read you a poem ^_^");
+     
+     rclcpp::spin(node);
+     
+     rclcpp::shutdown();
+     
      return 0;                                                                                      // Exit main() with no issues
 }
