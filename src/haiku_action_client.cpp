@@ -47,6 +47,8 @@ int main(int argc, char **argv)
           return -1;                                                                                // Shut down with error
      }
      
+     RCLCPP_INFO(node->get_logger(), "Requesting a poem from the server.");
+     
      // Create and send the request to the server
      
      HaikuAction::Goal request; request.number_of_lines = std::stoi(argv[1]);                        // Create request
@@ -81,7 +83,8 @@ int main(int argc, char **argv)
       
      if(response.code == rclcpp_action::ResultCode::SUCCEEDED)
      {
-          RCLCPP_INFO(node->get_logger(), response.result->poem.c_str());
+          std::string message = "Here is the poem:\n" + response.result->poem;
+          RCLCPP_INFO(node->get_logger(), message.c_str());
      }
      else
      {

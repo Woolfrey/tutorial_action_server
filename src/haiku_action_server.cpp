@@ -52,11 +52,13 @@ rclcpp_action::CancelResponse cancel_action(const std::shared_ptr<RequestManager
  */
 void read_poem(const std::shared_ptr<RequestManager> requestManager)
 {        
-     RCLCPP_INFO(rclcpp::get_logger("haiku_action_server"), "Here is a haiku:");
+     RCLCPP_INFO(rclcpp::get_logger("haiku_action_server"),
+                 "Reading the haiku. You can view the status with: "
+                 "'ros2 topic echo /haiku_action_service/_action/feedback'");
      
-     HaikuAction::Feedback::SharedPtr feedback;
+     HaikuAction::Feedback::SharedPtr feedback = std::make_shared<HaikuAction::Feedback>();         // We need this insane declaration or we get a segmentation fault
      
-     HaikuAction::Result::SharedPtr result;
+     HaikuAction::Result::SharedPtr result = std::make_shared<HaikuAction::Result>();               // We need this insane declaration or we get a segmentation fault
      
      rclcpp::Rate loopRate(1);                                                                      // Keeps timing on 'for' loop
      
@@ -64,28 +66,26 @@ void read_poem(const std::shared_ptr<RequestManager> requestManager)
      
      for(int i = 0; i < requestManager->get_goal()->number_of_lines && (rclcpp::ok()); i++)
      {      
-          RCLCPP_INFO(rclcpp::get_logger("haiku_action_server"),"Line number %d", i);
-          
           // Get the current line of the poem
           if(counter == 1)
           {
-               // feedback->current_line = "Worker bees can leave.\n";
+               feedback->current_line = "\nWorker bees can leave.\n";
                counter++;
           }
           else if(counter == 2) 
           {
-               // feedback->current_line = "Even drones can fly away.\n";
+               feedback->current_line = "Even drones can fly away.\n";
                counter++;
           }
           else // counter == 3
           {  
-              // feedback->current_line = "The Queen is their slave.\n\n";
+               feedback->current_line = "The Queen is their slave.\n";
                counter = 1;
           }
           
-          // feedback->line_number = i+1;                                                           // Current line of total
+          feedback->line_number = i+1;                                                              // Current line of total
           
-          // result->poem += feedback->current_line;                                                // Add the current line to the total
+          result->poem += feedback->current_line;                                                   // Add the current line to the total
           
           // Check for cancellation
           if(requestManager->is_canceling())
@@ -95,7 +95,7 @@ void read_poem(const std::shared_ptr<RequestManager> requestManager)
                RCLCPP_INFO(rclcpp::get_logger("haiku_action_server"), "Haiku reading cancelled at line %d", i+1); // Inform the user
           }
           
-          // requestManager->publish_feedback(feedback);                                            // As it says on the label
+          requestManager->publish_feedback(feedback);                                               // As it says on the label
           
           loopRate.sleep();                                                                         // Wait for 1 second
      }
@@ -103,7 +103,7 @@ void read_poem(const std::shared_ptr<RequestManager> requestManager)
      // Finished
      if(rclcpp::ok())
      {
-          // requestManager->succeed(result);
+          requestManager->succeed(result);
           
           RCLCPP_INFO(rclcpp::get_logger("haiku_action_server"), "Finished reading the haiku.");
      }
