@@ -2,12 +2,18 @@
 #include <rclcpp_action/rclcpp_action.hpp>                                                          // ROS2 action libaries
 #include <tutorial_action_definition/action/haiku.hpp>                                              // Custom action built in another project
 
-// NOTE: This style of programming is no longer the standard for ROS2, and is only intended to
-//       improve comprehension. The new ROS2 paradigm is to use object oriented programming.
-std::shared_ptr<rclcpp::Node> node = nullptr;                                                       // Forward declaration so it is in scope of main() and callback functions             
-
-
-
+// Structure of Haiku.action:
+//
+// # Goal
+// int32 number_of_lines
+// ---
+// # Result
+// string poem
+// ---
+// # Feedback
+// int32 line_number
+// string current_line
+     
 using HaikuAction = tutorial_action_definition::action::Haiku;                                      // Makes referencing easier
 using RequestManager = rclcpp_action::ServerGoalHandle<HaikuAction>;                                // For ease of use
 
@@ -21,19 +27,7 @@ rclcpp_action::GoalResponse process_request(const rclcpp_action::GoalUUID       
                                             std::shared_ptr<const HaikuAction::Goal> request)
 {
      (void)uuid;                                                                                    // This prevents colcon build from throwing a warning message
-     
-     // Structure of Haiku.action:
-     //
-     // # Goal
-     // int32 number_of_lines
-     // ---
-     // # Result
-     // string poem
-     // ---
-     // # Feedback
-     // int32 line_number
-     // string current_line
-     
+          
      if(request->number_of_lines < 1) return rclcpp_action::GoalResponse::REJECT;                   // Number of lines must be positive
      else                             return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
@@ -63,7 +57,7 @@ void accept_request(const std::shared_ptr<RequestManager> manager)
      
      (void)manager;
       
-     rclcpp::Rate loopRate(2.0);
+     rclcpp::Rate loopRate(0.5);
      
      int count = 1;
      
@@ -84,6 +78,8 @@ void accept_request(const std::shared_ptr<RequestManager> manager)
                std::cout << "The Queen is their slave.\n\n";
                count = 1;
           }
+          
+          loopRate.sleep();
      }
 }
 
@@ -92,11 +88,11 @@ void accept_request(const std::shared_ptr<RequestManager> manager)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv)
 {
-     rclcpp::init(argc, argv);   
+     rclcpp::init(argc, argv);                                                                      // Start up ROS2 (if not already running)
      
-     node = rclcpp::Node::make_shared("haiku_action_server");                                       // Assign node to empty memory
-     
-     
+     std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("haiku_action_server");         // Create node
+       
+     // Generate server from node
      rclcpp_action::Server<HaikuAction>::SharedPtr actionServer =
      rclcpp_action::create_server<HaikuAction>(node->get_node_base_interface(),
                                                node->get_node_clock_interface(),
@@ -107,11 +103,11 @@ int main(int argc, char **argv)
                                                &cancel_action,
                                                &accept_request);
      
-     RCLCPP_INFO(node->get_logger(), "Ready to read you a poem ^_^");
+     RCLCPP_INFO(node->get_logger(), "Ready to read you a poem ^_^");                               // Inform the user
      
-     rclcpp::spin(node);
+     rclcpp::spin(node);                                                                            // Run the node indefinitely
      
-     rclcpp::shutdown();
+     rclcpp::shutdown();                                                                            // Shut down the node
      
      return 0;                                                                                      // Exit main() with no issues
 }

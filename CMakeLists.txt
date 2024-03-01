@@ -12,7 +12,6 @@ endif()
 find_package(ament_cmake REQUIRED)                                                                  # Needed to compile
 find_package(rclcpp REQUIRED)                                                                       # ROS2 C++ libraries
 find_package(rclcpp_action REQUIRED)                                                                # ROS2 action libraries
-find_package(rclcpp_components REQUIRED)                                                            # ROS2 node libraries
 find_package(tutorial_action_definition REQUIRED)                                                   # Previously built package
 
 if(BUILD_TESTING)
@@ -29,12 +28,18 @@ add_executable(haiku_action_server src/haiku_action_server.cpp)
 ament_target_dependencies(haiku_action_server
                           "rclcpp"
                           "rclcpp_action"
-                          "rclcpp_components"
+                          "tutorial_action_definition")
+                          
+add_executable(haiku_action_client src/haiku_action_client.cpp)
+ament_target_dependencies(haiku_action_client
+                          "rclcpp"
+                          "rclcpp_action"
                           "tutorial_action_definition")
    
 # This is so ROS2 can find the package                                               
 install(TARGETS
         haiku_action_server
+        haiku_action_client
         DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
