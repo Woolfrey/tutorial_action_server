@@ -37,12 +37,12 @@ rclcpp_action::GoalResponse process_request(const rclcpp_action::GoalUUID       
  * @param manager This isn't used, but required by ROS2.
  * @return Reponse to the cancel request (in this case always ACCEPT)
  */
-rclcpp_action::CancelResponse cancel_action(const std::shared_ptr<RequestManager> manager)
+rclcpp_action::CancelResponse cancel_action(const std::shared_ptr<RequestManager> requestManager)
 {
-     (void)manager;                                                                                 // Stops colcon build throwing a warning
+     (void)requestManager;                                                                          // Stops colcon build throwing a warning
      
-     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Received cancellation request.");                    // Inform user
-     
+     RCLCPP_INFO(rclcpp::get_logger("haiku_action_server"),"Received cancellation request.");       // Inform user
+    
      return rclcpp_action::CancelResponse::ACCEPT;
 }
 
@@ -50,36 +50,62 @@ rclcpp_action::CancelResponse cancel_action(const std::shared_ptr<RequestManager
  * This function is called when a requested action is accepted.
  * @param manager An object that contains information on the HaikuAction data.
  */
-void accept_request(const std::shared_ptr<RequestManager> manager)
-{   
-     // using namespace std::placeholders;
-     // std::thread{std::bind(&ActionServer::execute, this,_1), manager}.detach();
+void read_poem(const std::shared_ptr<RequestManager> requestManager)
+{        
+     RCLCPP_INFO(rclcpp::get_logger("haiku_action_server"), "Here is a haiku:");
      
-     (void)manager;
-      
-     rclcpp::Rate loopRate(0.5);
+     HaikuAction::Feedback::SharedPtr feedback;
      
-     int count = 1;
+     HaikuAction::Result::SharedPtr result;
      
-     while(rclcpp::ok())
-     {
-          if(count == 1)
+     rclcpp::Rate loopRate(1);                                                                      // Keeps timing on 'for' loop
+     
+     int counter = 1;                                                                               // This keeps track of which line to add
+     
+     for(int i = 0; i < requestManager->get_goal()->number_of_lines && (rclcpp::ok()); i++)
+     {      
+          RCLCPP_INFO(rclcpp::get_logger("haiku_action_server"),"Line number %d", i);
+          
+          // Get the current line of the poem
+          if(counter == 1)
           {
-               std::cout << "Worker bees can leave.\n";
-               count++;
+               // feedback->current_line = "Worker bees can leave.\n";
+               counter++;
           }
-          else if(count == 2)
+          else if(counter == 2) 
           {
-               std::cout << "Even drones can fly away.\n";
-               count++; 
+               // feedback->current_line = "Even drones can fly away.\n";
+               counter++;
           }
-          else
-          {
-               std::cout << "The Queen is their slave.\n\n";
-               count = 1;
+          else // counter == 3
+          {  
+              // feedback->current_line = "The Queen is their slave.\n\n";
+               counter = 1;
           }
           
-          loopRate.sleep();
+          // feedback->line_number = i+1;                                                           // Current line of total
+          
+          // result->poem += feedback->current_line;                                                // Add the current line to the total
+          
+          // Check for cancellation
+          if(requestManager->is_canceling())
+          {
+               requestManager->canceled(result);                                                    // Return total so far
+               
+               RCLCPP_INFO(rclcpp::get_logger("haiku_action_server"), "Haiku reading cancelled at line %d", i+1); // Inform the user
+          }
+          
+          // requestManager->publish_feedback(feedback);                                            // As it says on the label
+          
+          loopRate.sleep();                                                                         // Wait for 1 second
+     }
+     
+     // Finished
+     if(rclcpp::ok())
+     {
+          // requestManager->succeed(result);
+          
+          RCLCPP_INFO(rclcpp::get_logger("haiku_action_server"), "Finished reading the haiku.");
      }
 }
 
@@ -101,7 +127,7 @@ int main(int argc, char **argv)
                                                "haiku_action_service",
                                                &process_request,
                                                &cancel_action,
-                                               &accept_request);
+                                               &read_poem);
      
      RCLCPP_INFO(node->get_logger(), "Ready to read you a poem ^_^");                               // Inform the user
      
