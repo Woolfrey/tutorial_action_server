@@ -67,25 +67,30 @@ void read_poem(const std::shared_ptr<RequestManager> requestManager)
      for(int i = 0; i < requestManager->get_goal()->number_of_lines && (rclcpp::ok()); i++)
      {      
           // Get the current line of the poem
+
+          feedback->line_number = i+1;                                                              // Current line of total
+        
           if(counter == 1)
           {
-               feedback->current_line = "\nWorker bees can leave.\n";
+               feedback->current_line = "Worker bees can leave.";                                   
+               result->poem += "\n" + feedback->current_line + "\n";                          
+                                            
                counter++;
           }
           else if(counter == 2) 
           {
-               feedback->current_line = "Even drones can fly away.\n";
+               feedback->current_line = "Even drones can fly away.";
+               result->poem += feedback->current_line + "\n";     
+                        
                counter++;
           }
           else // counter == 3
           {  
-               feedback->current_line = "The Queen is their slave.\n";
+               feedback->current_line = "The Queen is their slave.";
+               result->poem += feedback->current_line + "\n";
+               
                counter = 1;
           }
-          
-          feedback->line_number = i+1;                                                              // Current line of total
-          
-          result->poem += feedback->current_line;                                                   // Add the current line to the total
           
           // Check for cancellation
           if(requestManager->is_canceling())
