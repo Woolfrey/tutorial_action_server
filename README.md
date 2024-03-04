@@ -102,7 +102,7 @@ find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(tutorial_action_definition REQUIRED)
 ```
-iv) Navigate back to the root of your ROS2 workspace and build the package:
+v) Navigate back to the root of your ROS2 workspace and build the package:
 ```
 colcon build --packages-select tutorial_action_server
 ```
@@ -110,6 +110,91 @@ colcon build --packages-select tutorial_action_server
 :arrow_backward: [Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
 
 ### :mag: The Code Explained
+
+An action server requires 3 functions:
+1. A `GoalCallback` that will process an action request from a client,
+2. A `CancelCallback` that will process a request to cancel an action being executed, and
+3. An `AcceptedCallback` where the actual work of an action is executed.
+
+This function below is the `GoalCallback`. When the action client makes a request to the server, it immediately invokes this function. If the request is invalid, it will `REJECT` and inform the client. Otherwise it immediately jumps to the `read_poem()` function below.
+```
+rclcpp_action::GoalResponse process_request(const rclcpp_action::GoalUUID &uuid,
+                                            std::shared_ptr<const HaikuAction::Goal> request)
+{
+     (void)uuid;
+          
+     if(request->number_of_lines < 1) return rclcpp_action::GoalResponse::REJECT;
+     else                             return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+}
+```
+This is the `CancelCallback` function. It could be programmed to check if its safe or feasible to cancel an action:
+```
+rclcpp_action::CancelResponse cancel_action(const std::shared_ptr<RequestManager> requestManager)
+{
+     (void)requestManager;
+     
+     RCLCPP_INFO(rclcpp::get_logger("haiku_action_server"),"Received cancellation request.");
+    
+     return rclcpp_action::CancelResponse::ACCEPT;
+}
+```
+This is the `AcceptedCallback` that is invoked by the `GoalCallback`:
+```
+void read_poem(const std::shared_ptr<RequestManager> requestManager)
+{        
+     ...
+}
+```
+It will loop through the total number of lines requested, and repeatedly add the 3 lines of the haiku together:
+```
+for(int i = 0; i < requestManager->get_goal()->number_of_lines && (rclcpp::ok()); i++)
+{      
+     ...
+}
+```
+At a certain point with the above `for` loop it checks for a cancellation request:
+```
+if(requestManager->is_canceling())
+{
+     requestManager->canceled(result);
+     
+     RCLCPP_INFO(rclcpp::get_logger("haiku_action_server"), "Haiku reading cancelled at line %d", i+1);
+}
+```
+On this line it publishes the feedback data to a hidden topic:
+```
+requestManager->publish_feedback(feedback);
+```
+We need to call `ros2 topic list --include-hidden-topics` in order to see it.
+
+This line of code keeps the timing on the `for` loop to 1Hz:
+```
+loopRate.sleep();
+```
+In the `main()` function we create a node:
+```
+std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("haiku_action_server");
+```
+and use it to generate the action server:
+```
+rclcpp_action::Server<HaikuAction>::SharedPtr actionServer =
+rclcpp_action::create_server<HaikuAction>(node->get_node_base_interface(),
+                                          node->get_node_clock_interface(),
+                                          node->get_node_logging_interface(),
+                                          node->get_node_waitables_interface(),
+                                          "haiku_action_service",
+                                          &process_request,
+                                          &cancel_action,
+                                          &read_poem);
+```
+The 5th argument is the name of the service "haiku_action_server" that any related client must match. 
+
+The last 3 arguments are the `GoalCallback`, `CancelCallback`, and `AcceptedCallback` functions, respectively.
+
+This line runs the node which will look for action requests and execute them:
+```
+rclcpp::spin(node);
+```
 
 :arrow_backward: [Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
 
