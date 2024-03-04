@@ -15,6 +15,7 @@
 // string current_line
      
 using HaikuAction = tutorial_action_definition::action::Haiku;                                      // Makes referencing easier
+
 using RequestManager = rclcpp_action::ServerGoalHandle<HaikuAction>;                                // For ease of use
 
 /**
@@ -48,7 +49,7 @@ rclcpp_action::CancelResponse cancel_action(const std::shared_ptr<RequestManager
 
 /**
  * This function is called when a requested action is accepted.
- * @param manager An object that contains information on the HaikuAction data.
+ * @param requestManager An object that contains information on the HaikuAction data.
  */
 void read_poem(const std::shared_ptr<RequestManager> requestManager)
 {        
@@ -129,10 +130,10 @@ int main(int argc, char **argv)
                                                node->get_node_clock_interface(),
                                                node->get_node_logging_interface(),
                                                node->get_node_waitables_interface(),
-                                               "haiku_action_service",
-                                               &process_request,
-                                               &cancel_action,
-                                               &read_poem);
+                                               "haiku_action_service",                              // This must match the service being advertised
+                                               &process_request,                                    // action request callback function
+                                               &cancel_action,                                      // action cancel callback function
+                                               &read_poem);                                         // Executes the action
      
      RCLCPP_INFO(node->get_logger(), "Ready to read you a poem ^_^");                               // Inform the user
      
