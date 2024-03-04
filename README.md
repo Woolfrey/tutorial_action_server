@@ -200,8 +200,233 @@ rclcpp::spin(node);
 
 ## 2. Creating an Action Client
 
+i) In the `tutorial_action_server/src` folder, create `haiku_action_client.cpp` and enter the following code:
+```
+#include <rclcpp/rclcpp.hpp>                                                                        // ROS2 C++ libraries
+#include <rclcpp_action/rclcpp_action.hpp>                                                          // ROS2 action libaries
+#include <tutorial_action_definition/action/haiku.hpp>                                              // Custom action built in another project
+
+// Structure of Haiku.action:
+//
+// # Goal
+// int32 number_of_lines
+// ---
+// # Result
+// string poem
+// ---
+// # Feedback
+// int32 line_number
+// string current_line
+     
+using HaikuAction = tutorial_action_definition::action::Haiku;                                      // Makes referencing easier
+
+using RequestManager = rclcpp_action::ClientGoalHandle<HaikuAction>;                                // For ease of use
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                           MAIN                                                 //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+int main(int argc, char **argv)
+{
+     rclcpp::init(argc, argv);                                                                      // Start up ROS2
+     
+     if(argc != 2)
+     {
+          RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Incorrect number of arguments. Usage: "
+                                                     "'ros2 run tutoral_action_server haiku_action_client n' "
+                                                     "where n is the number of lines to print.");
+                                                      
+          return -1;
+     }
+     
+     std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("haiku_action_client");         // Create node
+     
+     rclcpp_action::Client<HaikuAction>::SharedPtr client =
+     rclcpp_action::create_client<HaikuAction>(node,"haiku_action_service");                        // Create client to interface with named service
+     
+     // Wait for the server to appear; if not, shut down
+     if(not client->wait_for_action_server(std::chrono::seconds(5)))
+     {
+          RCLCPP_ERROR(node->get_logger(), "Waited 5 seconds for the server and found nothing.");
+          
+          return -1;                                                                                // Shut down with error
+     }
+     
+     RCLCPP_INFO(node->get_logger(), "Requesting a poem from the server.");
+     
+     // Create and send the request to the server
+     
+     HaikuAction::Goal request; request.number_of_lines = std::stoi(argv[1]);                        // Create request
+     
+     std::shared_future<RequestManager::SharedPtr> requestManager = client->async_send_goal(request); // This class is used for processing the request to the server
+      
+     if(rclcpp::spin_until_future_complete(node, requestManager) != rclcpp::FutureReturnCode::SUCCESS) // Check to see if successfully sent
+     {
+          RCLCPP_ERROR(node->get_logger(), "Failed to send request.");
+          
+          return -1;
+     }    
+     else if(not requestManager.get())                                                              // Check to see if request is accepted
+     {
+          RCLCPP_ERROR(node->get_logger(), "Request was rejected by server.");
+          
+          return -1;
+     }
+
+     // Wait for the result
+     
+     auto responseManager = client->async_get_result(requestManager.get());                         // This class contains information on the response from the server                    
+      
+     if(rclcpp::spin_until_future_complete(node,responseManager) != rclcpp::FutureReturnCode::SUCCESS) // I don't really know what this does
+     {
+          RCLCPP_ERROR(node->get_logger(), "Failed to obtain response.");
+          
+          return -1;
+     }
+        
+     auto response = responseManager.get();                                                         // As it says on the label
+      
+     if(response.code == rclcpp_action::ResultCode::SUCCEEDED)
+     {
+          std::string message = "Here is the poem:\n" + response.result->poem;
+          RCLCPP_INFO(node->get_logger(), message.c_str());
+     }
+     else
+     {
+          RCLCPP_ERROR(node->get_logger(), "There was an error with the Haiku server.");
+     }
+    
+     rclcpp::shutdown();                                                                            // Stop ROS2
+}
+```
+ii) Modify the `CMakeLists.text` file in the root directory of `tutorial_action_server` with the following lines:
+```
+add_executable(haiku_action_client src/haiku_action_client.cpp)
+ament_target_dependencies(haiku_action_client
+                          "rclcpp"
+                          "rclcpp_action"
+                          "tutorial_action_definition")
+```
+Be sure to also add it to the install targets so ROS2 can find it as a package:
+```
+install(TARGETS
+        haiku_action_server
+        haiku_action_client
+        DESTINATION lib/${PROJECT_NAME})
+```
+iii) Navigate back to the root of your ROS2 workspace and build the package:
+```
+colcon build --packages-select tutorial_action_server
+```
+iv) Be sure to locally source after building:
+```
+source ./install/setup.bash
+```
+v) Launch the action server (if you haven't already done so):
+```
+ros2 run tutorial_action_server haiku_action_server
+```
+vi) Launch the action client in another window:
+```
+ros2 run tutorial_action_server haiku_action_client n
+```
+Where `n` is an integer argument for the number of lines to print. You should see something like:
+
+<img src="https://github.com/Woolfrey/tutorial_action_server/assets/62581255/51a66d62-352b-4d3a-9848-afa0555bb0bb" width="800" height="auto">
+
+Once completed the server will return the poem with the number of lines requested. The client will then print this to the terminal as shown.
+
+vii) In a _third_ terminal, you can check the output of the hidden feedback topic:
+```
+ros2 topic list --include-hidden-topics
+```
+<img src="https://github.com/Woolfrey/tutorial_action_server/assets/62581255/7bd8174f-d73d-4ccf-8bbf-af81d89f387e" width="800" height="auto">
+
+It is possible to echo this topic as the actions server is running:
+
+```
+ros2 topic echo /haiku_action_service/_action/feedback
+```
+And you should see:
+
+<img src="https://github.com/Woolfrey/tutorial_action_server/assets/62581255/f623a396-f87a-4566-8306-1a4fe2be1aac" width="800" height="auto">
+
+Remember that you have to source: `source ./install/setup.bash` otherwise ROS2 will not recognise the message/action type.
+
 :arrow_backward: [Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
 
 ### :mag: The Code Explained
+
+Here we create the node and give it a name:
+```
+std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("haiku_action_client");
+```
+It needs to be a shared pointer so we can spin it later.
+
+In this line we create the client:
+```
+rclcpp_action::Client<HaikuAction>::SharedPtr client = rclcpp_action::create_client<HaikuAction>(node,"haiku_action_service");
+```
+The name "haiku_action_service" must match what is advertised by the server.
+
+Here the client will wait 5 seconds to give time for the server to appear (if it doesn't already exist):
+```
+if(not client->wait_for_action_server(std::chrono::seconds(5)))
+{
+     RCLCPP_ERROR(node->get_logger(), "Waited 5 seconds for the server and found nothing.");
+     
+     return -1;
+}
+```
+Once it times out, it will shut down.
+
+In these lines of code we create the request from the argument when we launched the client. Then we send it to the server:
+```
+HaikuAction::Goal request; request.number_of_lines = std::stoi(argv[1]);
+std::shared_future<RequestManager::SharedPtr> requestManager = client->async_send_goal(request);
+```
+
+This line simply checks if the request was sent successfully:
+```
+if(rclcpp::spin_until_future_complete(node, requestManager) != rclcpp::FutureReturnCode::SUCCESS)
+{
+     RCLCPP_ERROR(node->get_logger(), "Failed to send request.");
+     
+     return -1;
+}    
+else if(not requestManager.get())
+{
+     RCLCPP_ERROR(node->get_logger(), "Request was rejected by server.");
+     
+     return -1;
+}
+```
+
+Here we wait for the action to be completed:
+```
+auto responseManager = client->async_get_result(requestManager.get());
+ 
+if(rclcpp::spin_until_future_complete(node,responseManager) != rclcpp::FutureReturnCode::SUCCESS)
+{
+     RCLCPP_ERROR(node->get_logger(), "Failed to obtain response.");
+     
+     return -1;
+}
+```
+
+Finally, we get the response and print to to the terminal (if successful):
+```
+auto response = responseManager.get();
+ 
+if(response.code == rclcpp_action::ResultCode::SUCCEEDED)
+{
+     std::string message = "Here is the poem:\n" + response.result->poem;
+     RCLCPP_INFO(node->get_logger(), message.c_str());
+}
+else
+{
+     RCLCPP_ERROR(node->get_logger(), "There was an error with the Haiku server.");
+}
+```
+
 
 :arrow_backward: [Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
