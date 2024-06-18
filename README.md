@@ -26,16 +26,22 @@ Actions are one of 3 communication protocols in ROS2:
 
 - In the `publisher` & `subscriber` paradigm, a single publisher streams information to a topic. Multiple subscribers may then connect to this topic and use this information as they please. A publisher is suitable for streaming information, like sensor data on a robot.
 
+<p align="center">
 <img src="https://github.com/Woolfrey/tutorial_action_definition/assets/62581255/8fb65629-6dd1-46ac-9d85-2a4eb794a16d" alt="image" width="300" height="auto">
+</p>
 
 - A `server` processes a one-time request from a `client`. This is suited to information that is required sporadically. For example, retrieving an update of a map, or generating a new path to a desired location. The information is passed directly between nodes that others cannot access.
 - The `action` protocol amalgmates the concept of the publisher & subscriber with that of the client & server. An `action client` makes a request to an `action server`. Whilst processing this request, the action server publishes information on its progress.
 
+<p align="center">
 <img src="https://github.com/Woolfrey/tutorial_action_definition/assets/62581255/3f2a0cd3-7664-4d56-bcc4-d6f057790604" alt="image" width = "300" height="auto">
+</p>
 
 Actions are suitable for structured tasks, for example telling a robot to drive to a particular location. It is a finite task that is executed infrequently, hence the server/client feature. But we may want to receive continual updates on its progress (time until completion, tracking accuracy, etc.), hence the publisher/subscriber aspect.
 
+<p align="center">
 <img src="https://github.com/Woolfrey/tutorial_action_definition/assets/62581255/6aad8ead-929f-4a87-8bb2-d521f0825d33" alt="image" width="300" height="auto">
+</p>
 
 An `Action.action` file is structured as follows:
 ```
@@ -49,11 +55,12 @@ datatype result
 datatype feedback
 ```
 
-:arrow_backward: [Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
+[:arrow_backward: Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
 
 ## 1. Creating an Action Server
 
-:rotating_light: This assumes you have completed & compiled the action definition in the [previous tutorial](https://github.com/woolfrey/tutorial_action_definition) :rotating_light:
+>[!WARNING]
+> This assumes you have completed & compiled the action definition in the [previous tutorial](https://github.com/woolfrey/tutorial_action_definition)
 
 Be sure to source ROS2 and your local ROS2 working directory so that the `tutorial_action_definition` package can be found:
 ```
@@ -94,7 +101,8 @@ install(TARGETS
         haiku_action_server
         DESTINATION lib/${PROJECT_NAME})
 ```
-:bangbang: Also check the following lines of code are at the top of the file:
+>[!NOTE]
+> Also check the following lines of code are at the top of the file:
 ```
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -107,7 +115,7 @@ v) Navigate back to the root of your ROS2 workspace and build the package:
 colcon build --packages-select tutorial_action_server
 ```
 
-:arrow_backward: [Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
+[:arrow_backward: Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
 
 ### :mag: The Code Explained
 
@@ -196,7 +204,7 @@ This line runs the node which will look for action requests and execute them:
 rclcpp::spin(node);
 ```
 
-:arrow_backward: [Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
+[:arrow_backward: Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
 
 ## 2. Creating an Action Client
 
@@ -331,7 +339,9 @@ ros2 run tutorial_action_server haiku_action_client n
 ```
 Where `n` is an integer argument for the number of lines to print. You should see something like:
 
+<p align="center"
 <img src="https://github.com/Woolfrey/tutorial_action_server/assets/62581255/51a66d62-352b-4d3a-9848-afa0555bb0bb" width="800" height="auto">
+</p>
 
 Once completed the server will return the poem with the number of lines requested. The client will then print this to the terminal as shown.
 
@@ -339,7 +349,9 @@ vii) In a _third_ terminal, you can check the output of the hidden feedback topi
 ```
 ros2 topic list --include-hidden-topics
 ```
+<p align="center">
 <img src="https://github.com/Woolfrey/tutorial_action_server/assets/62581255/7bd8174f-d73d-4ccf-8bbf-af81d89f387e" width="800" height="auto">
+</p>
 
 It is possible to echo this topic as the actions server is running:
 
@@ -348,11 +360,13 @@ ros2 topic echo /haiku_action_service/_action/feedback
 ```
 And you should see:
 
+<p align="center">
 <img src="https://github.com/Woolfrey/tutorial_action_server/assets/62581255/f623a396-f87a-4566-8306-1a4fe2be1aac" width="800" height="auto">
+</p>
 
 Remember that you have to source: `source ./install/setup.bash` otherwise ROS2 will not recognise the message/action type.
 
-:arrow_backward: [Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
+[:arrow_backward: Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
 
 ### :mag: The Code Explained
 
@@ -428,5 +442,4 @@ else
 }
 ```
 
-
-:arrow_backward: [Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
+[:arrow_backward: Go back.](#ros2-tutorial-32-creating-an-action-server--action-client)
